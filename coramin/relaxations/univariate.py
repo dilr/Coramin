@@ -391,19 +391,19 @@ def pw_arctan_relaxation(b, x, w, x_pts, relaxation_side=RelaxationSide.BOTH, pw
     if xlb == -math.inf or xub == math.inf:
         return
 
-    OE_tangent_x, OE_tangent_slope, OE_tangent_intercept = _compute_arctan_overestimator_tangent_point(xlb)
-    UE_tangent_x, UE_tangent_slope, UE_tangent_intercept = _compute_arctan_underestimator_tangent_point(xub)
     non_piecewise_overestimators_pts = []
     non_piecewise_underestimator_pts = []
 
-    if relaxation_side == RelaxationSide.OVER:
+    if relaxation_side == RelaxationSide.OVER and xlb < 0:
+        OE_tangent_x, OE_tangent_slope, OE_tangent_intercept = _compute_arctan_overestimator_tangent_point(xlb)
         if OE_tangent_x < xub:
             new_x_pts = [i for i in x_pts if i < OE_tangent_x]
             new_x_pts.append(xub)
             non_piecewise_overestimators_pts = [OE_tangent_x]
             non_piecewise_overestimators_pts.extend(i for i in x_pts if i > OE_tangent_x)
             x_pts = new_x_pts
-    elif relaxation_side == RelaxationSide.UNDER:
+    elif relaxation_side == RelaxationSide.UNDER and xub > 0:
+        UE_tangent_x, UE_tangent_slope, UE_tangent_intercept = _compute_arctan_underestimator_tangent_point(xub)
         if UE_tangent_x > xlb:
             new_x_pts = [xlb]
             new_x_pts.extend(i for i in x_pts if i > UE_tangent_x)
@@ -900,17 +900,8 @@ class PWArctanRelaxationData(PWUnivariateRelaxationData):
         self.rebuild()
 
     def _build_relaxation(self):
-        if self.is_rhs_convex() and self.relaxation_side in {RelaxationSide.OVER, RelaxationSide.BOTH}:
-            pw_univariate_relaxation(b=self, x=self._x, w=self._aux_var, x_pts=self._partitions[self._x],
-                                     f_x_expr=self._f_x_expr, pw_repn=self._pw_repn, shape=FunctionShape.CONVEX,
-                                     relaxation_side=RelaxationSide.OVER, large_eval_tol=self.large_eval_tol)
-        elif self.is_rhs_concave() and self.relaxation_side in {RelaxationSide.UNDER, RelaxationSide.BOTH}:
-            pw_univariate_relaxation(b=self, x=self._x, w=self._aux_var, x_pts=self._partitions[self._x],
-                                     f_x_expr=self._f_x_expr, pw_repn=self._pw_repn, shape=FunctionShape.CONCAVE,
-                                     relaxation_side=RelaxationSide.UNDER, large_eval_tol=self.large_eval_tol)
-        if (not self.is_rhs_convex()) and (not self.is_rhs_concave()):
-            pw_arctan_relaxation(b=self, x=self._x, w=self._aux_var, x_pts=self._partitions[self._x],
-                                 relaxation_side=self.relaxation_side, pw_repn=self._pw_repn)
+        pw_arctan_relaxation(b=self, x=self._x, w=self._aux_var, x_pts=self._partitions[self._x],
+                             relaxation_side=self.relaxation_side, pw_repn=self._pw_repn)
 
     def is_rhs_convex(self):
         """
