@@ -597,8 +597,9 @@ def convert_pyomo_model_to_bipartite_graph(m: _BlockData):
     for b in relaxation_data_objects(m, descend_into=True, active=True, sort=True):
         node2 = _RelNode(b)
         for v in (list(b.get_rhs_vars()) + [b.get_aux_var()]):
-            node1 = var_map[v]
-            graph.add_edge(node1, node2)
+            if v.is_variable_type():
+                node1 = var_map[v]
+                graph.add_edge(node1, node2)
 
     for c in nonrelaxation_component_data_objects(m, pe.Constraint, active=True, sort=True, descend_into=True):
         node2 = _ConNode(c)
