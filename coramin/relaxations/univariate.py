@@ -12,6 +12,7 @@ from pyomo.core.expr.numeric_expr import LinearExpression
 import logging
 from typing import Optional, Union, Sequence
 from pyomo.core.expr.calculus.diff_with_pyomo import reverse_sd
+from pyomo.core.expr.visitor import replace_expressions
 logger = logging.getLogger(__name__)
 pe = pyo
 
@@ -731,6 +732,24 @@ class PWUnivariateRelaxationData(BasePWRelaxationData):
     def use_linear_relaxation(self, val):
         self._use_linear_relaxation = val
 
+    def _copy_relaxation_with_local_data(self, old_var_to_new_var_map):
+        new_x = old_var_to_new_var_map[id(self.get_rhs_vars()[0])]
+        new_aux_var = old_var_to_new_var_map[id(self.get_aux_var())]
+        new_f_x_expr = replace_expressions(self.get_rhs_expr(),
+                                           substitution_map=old_var_to_new_var_map,
+                                           remove_named_expressions=True)
+        new_rel = PWUnivariateRelaxation(concrete=True)
+        if self.is_rhs_convex():
+            shape = FunctionShape.CONVEX
+        elif self.is_rhs_concave():
+            shape = FunctionShape.CONCAVE
+        else:
+            shape = FunctionShape.UNKNOWN
+        new_rel.set_input(x=new_x, aux_var=new_aux_var, shape=shape,
+                          f_x_expr=new_f_x_expr, pw_repn=self._pw_repn,
+                          relaxation_side=self.relaxation_side,
+                          use_linear_relaxation=self.use_linear_relaxation)
+        return new_rel
 
 @declare_custom_block(name='CustomUnivariateBaseRelaxation')
 class CustomUnivariateBaseRelaxationData(PWUnivariateRelaxationData):
@@ -799,6 +818,14 @@ class PWXSquaredRelaxationData(CustomUnivariateBaseRelaxationData):
     def is_rhs_convex(self):
         return True
 
+    def _copy_relaxation_with_local_data(self, old_var_to_new_var_map):
+        new_x = old_var_to_new_var_map[id(self.get_rhs_vars()[0])]
+        new_aux_var = old_var_to_new_var_map[id(self.get_aux_var())]
+        new_rel = PWXSquaredRelaxation(concrete=True)
+        new_rel.set_input(x=new_x, aux_var=new_aux_var, pw_repn=self._pw_repn,
+                          use_linear_relaxation=self.use_linear_relaxation,
+                          relaxation_side=self.relaxation_side)
+        return new_rel
 
 @declare_custom_block(name='PWCosRelaxation')
 class PWCosRelaxationData(CustomUnivariateBaseRelaxationData):
@@ -828,6 +855,14 @@ class PWCosRelaxationData(CustomUnivariateBaseRelaxationData):
         else:
             return False
 
+    def _copy_relaxation_with_local_data(self, old_var_to_new_var_map):
+        new_x = old_var_to_new_var_map[id(self.get_rhs_vars()[0])]
+        new_aux_var = old_var_to_new_var_map[id(self.get_aux_var())]
+        new_rel = PWCosRelaxation(concrete=True)
+        new_rel.set_input(x=new_x, aux_var=new_aux_var, pw_repn=self._pw_repn,
+                          relaxation_side=self.relaxation_side,
+                          use_linear_relaxation=self.use_linear_relaxation)
+        return new_rel
 
 @declare_custom_block(name='SinArctanBaseRelaxation')
 class SinArctanBaseRelaxationData(CustomUnivariateBaseRelaxationData):
@@ -1014,6 +1049,14 @@ class PWSinRelaxationData(SinArctanBaseRelaxationData):
             return True
         return False
 
+    def _copy_relaxation_with_local_data(self, old_var_to_new_var_map):
+        new_x = old_var_to_new_var_map[id(self.get_rhs_vars()[0])]
+        new_aux_var = old_var_to_new_var_map[id(self.get_aux_var())]
+        new_rel = PWSinRelaxation(concrete=True)
+        new_rel.set_input(x=new_x, aux_var=new_aux_var, pw_repn=self._pw_repn,
+                          relaxation_side=self.relaxation_side,
+                          use_linear_relaxation=self.use_linear_relaxation)
+        return new_rel
 
 @declare_custom_block(name='PWArctanRelaxation')
 class PWArctanRelaxationData(SinArctanBaseRelaxationData):
@@ -1058,3 +1101,12 @@ class PWArctanRelaxationData(SinArctanBaseRelaxationData):
         if lb >= 0:
             return True
         return False
+
+    def _copy_relaxation_with_local_data(self, old_var_to_new_var_map):
+        new_x = old_var_to_new_var_map[id(self.get_rhs_vars()[0])]
+        new_aux_var = old_var_to_new_var_map[id(self.get_aux_var())]
+        new_rel = PWArctanRelaxation(concrete=True)
+        new_rel.set_input(x=new_x, aux_var=new_aux_var, pw_repn=self._pw_repn,
+                          relaxation_side=self.relaxation_side,
+                          use_linear_relaxation=self.use_linear_relaxation)
+        return new_rel

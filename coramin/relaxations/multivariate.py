@@ -1,7 +1,7 @@
 from coramin.utils.coramin_enums import RelaxationSide, FunctionShape
 from coramin.relaxations.custom_block import declare_custom_block
 from coramin.relaxations.relaxations_base import BaseRelaxationData, ComponentWeakRef
-from pyomo.core.expr.visitor import identify_variables
+from pyomo.core.expr.visitor import identify_variables, replace_expressions
 import math
 import pyomo.environ as pe
 from coramin.relaxations._utils import _get_bnds_list
@@ -91,3 +91,19 @@ class MultivariateRelaxationData(BaseRelaxationData):
             if val != RelaxationSide.OVER:
                 raise ValueError('MultivariateRelaxations only support overestimators for concave functions')
         BaseRelaxationData.relaxation_side.fset(self, val)
+
+    def _copy_relaxation_with_local_data(self, old_var_to_new_var_map):
+        new_aux_var = old_var_to_new_var_map[id(self.get_aux_var())]
+        if self.is_rhs_convex():
+            shape = FunctionShape.CONVEX
+        elif self.is_rhs_concave():
+            shape = FunctionShape.CONCAVE
+        else:
+            shape = FunctionShape.UNKNOWN
+        new_f_x_expr = replace_expressions(self.get_rhs_expr(),
+                                           substitution_map=old_var_to_new_var_map,
+                                           remove_named_expressions=True)
+        new_rel = MultivariateRelaxation(concrete=True)
+        new_rel.set_input(aux_var=new_aux_var, shape=shape, f_x_expr=new_f_x_expr,
+                          use_linear_relaxation=self.use_linear_relaxation)
+        return new_rel

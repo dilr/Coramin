@@ -8,6 +8,7 @@ from ._utils import check_var_pts, _get_bnds_list, _get_bnds_tuple
 from pyomo.core.base.param import IndexedParam
 from pyomo.core.base.constraint import IndexedConstraint
 from pyomo.core.expr.numeric_expr import LinearExpression
+from pyomo.core.expr.visitor import replace_expressions
 from typing import Optional, Dict, Sequence
 pe = pyo
 
@@ -305,3 +306,15 @@ class PWMcCormickRelaxationData(BasePWRelaxationData):
         bool
         """
         return False
+
+    def _copy_relaxation_with_local_data(self, old_var_to_new_var_map):
+        rhs_vars = self.get_rhs_vars()
+        old_x1 = rhs_vars[0]
+        old_x2 = rhs_vars[1]
+        new_x1 = old_var_to_new_var_map[id(old_x1)]
+        new_x2 = old_var_to_new_var_map[id(old_x2)]
+        new_aux_var = old_var_to_new_var_map[id(self.get_aux_var())]
+        new_rel = PWMcCormickRelaxation(concrete=True)
+        new_rel.set_input(x1=new_x1, x2=new_x2, aux_var=new_aux_var,
+                          relaxation_side=self.relaxation_side)
+        return new_rel

@@ -204,3 +204,8 @@ class TestCopyRelWithLocalData(unittest.TestCase):
         self.assertEqual(m.rel._function_shape, new_rel._function_shape)
         self.assertIsInstance(new_rel, coramin.relaxations.MultivariateRelaxationData)
         self.assertEqual(sympyify_expression(-m2.x**2 - m2.y**2 - new_rel.get_rhs_expr())[1], 0)
+
+    def test_unknown(self):
+        rel = coramin.relaxations.BaseRelaxation()
+        self.assertRaisesRegex(NotImplementedError, '^This method should be implemented in the derived class\.$', 
+            copy_relaxation_with_local_data, rel, {})

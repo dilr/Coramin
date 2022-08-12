@@ -616,6 +616,32 @@ class BaseRelaxationData(_BlockData):
                     del self._oa_points[max_pt]
                     self._oa_points[ub_tuple] = max_oa_cut
 
+    def copy_relaxation_with_local_data(self, old_var_to_new_var_map):
+        """
+        This method copies the relaxation object with new variables.
+        Note that only what can be set through the set_input and build
+        methods are copied. For example, piecewise partitioning points
+        are not copied.
+
+        Parameters
+        ----------
+        old_var_to_new_var_map: dict
+            Map from the original variable id to the new variable
+
+        Returns
+        -------
+        rel: coramin.relaxations.relaxations_base.BaseRelaxationData
+            The copy of rel with new variables
+        """
+        new_rel = self._copy_relaxation_with_local_data(old_var_to_new_var_map)
+
+        new_rel.small_coef = self.small_coef
+        new_rel.large_coef = self.large_coef
+        new_rel.safety_tol = self.safety_tol
+        return new_rel
+
+    def _copy_relaxation_with_local_data(self, old_var_to_new_var_map):
+        raise NotImplementedError('This method should be implemented in the derived class.')
 
 @declare_custom_block(name='BasePWRelaxation')
 class BasePWRelaxationData(BaseRelaxationData):

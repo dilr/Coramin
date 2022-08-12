@@ -5,7 +5,7 @@ from coramin.relaxations.hessian import Hessian
 from typing import Optional, Tuple
 from pyomo.core.base.var import _GeneralVarData
 from pyomo.core.expr.numeric_expr import ExpressionBase
-from pyomo.core.expr.visitor import identify_variables
+from pyomo.core.expr.visitor import identify_variables, replace_expressions
 from pyomo.contrib import appsi
 from pyomo.core.base.param import ScalarParam, IndexedParam
 from pyomo.core.base.set import OrderedScalarSet
@@ -164,3 +164,21 @@ class AlphaBBRelaxationData(BaseRelaxationData):
 
         super().rebuild(build_nonlinear_constraint=build_nonlinear_constraint,
                         ensure_oa_at_vertices=ensure_oa_at_vertices)
+
+    def _copy_relaxation_with_local_data(self, old_var_to_new_var_map):
+        new_aux_var = old_var_to_new_var_map[id(self.get_aux_var())]
+        new_f_x_expr = replace_expressions(
+            self.get_rhs_expr(),
+            substitution_map=old_var_to_new_var_map,
+            remove_named_expressions=True
+        )
+        new_rel = AlphaBBRelaxation(concrete=True)
+        new_rel.set_input(
+            aux_var=new_aux_var,
+            f_x_expr=new_f_x_expr,
+            relaxation_side=self.relaxation_side,
+            use_linear_relaxation=self.use_linear_relaxation,
+            eigenvalue_bounder=self.hessian.method,
+            eigenvalue_opt=self.hessian.opt,
+        )
+        return new_rel
